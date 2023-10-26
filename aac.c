@@ -60,24 +60,25 @@ int main()
         return -1;
     }
 
-    /*获取一次编码需要的帧长度*/
+    // 获取一次编码需要的帧长度
     UINT frame_size = aacEncoder_GetParam(encoderHandle, AACENC_GRANULE_LENGTH);
+
     // 创建输入PCM数据缓冲区
     INT_PCM inputBuffer[frame_size * OUTPUT_CHANNELS];
 
     // 创建输出AAC数据缓冲区
     UINT outputBuffer[frame_size * OUTPUT_CHANNELS * sizeof(INT_PCM)];
 
-    // 编码输入帧
+    // 编码输入输出参数设置
     AACENC_BufDesc inputBufDesc;
     AACENC_BufDesc outputBufDesc;
     AACENC_InArgs inputArgs;
     AACENC_OutArgs outputArgs;
 
-    void *inBuffer[] = {inputBuffer};
-    INT inBufferIds[] = {IN_AUDIO_DATA};
-    INT inBufferSize[] = {sizeof(inputBuffer)};
-    INT inBufferElSize[] = {sizeof(INT_PCM)};
+    void *inBuffer[] = {inputBuffer};           // 各种输入数据的存放区
+    INT inBufferIds[] = {IN_AUDIO_DATA};        // 不包含辅助数据
+    INT inBufferSize[] = {sizeof(inputBuffer)}; // 元素总数
+    INT inBufferElSize[] = {sizeof(INT_PCM)};   // 单个元素数据大小
 
     inputBufDesc.numBufs = sizeof(inBuffer) / sizeof(void *);
     inputBufDesc.bufs = (void **)&inBuffer;
@@ -90,14 +91,14 @@ int main()
     INT outBufferSize[] = {sizeof(outputBuffer)};
     INT outBufferElSize[] = {sizeof(UINT)};
 
-    outputBufDesc.numBufs = sizeof(outBuffer) / sizeof(void *);
+    outputBufDesc.numBufs = sizeof(outBuffer) / sizeof(void *); // 数据类型数量（此处仅包含代编码数据不含辅助数据等类型，故设置为1）
     outputBufDesc.bufs = outBuffer;
     outputBufDesc.bufferIdentifiers = outBufferIds;
     outputBufDesc.bufSizes = outBufferSize;
     outputBufDesc.bufElSizes = outBufferElSize;
 
-    inputArgs.numAncBytes = 0;
-    inputArgs.numInSamples = frame_size * OUTPUT_CHANNELS;
+    inputArgs.numAncBytes = 0;                             // 辅助数据字节数
+    inputArgs.numInSamples = frame_size * OUTPUT_CHANNELS; // 编码输入字节总数
 
     // 编码循环
     while (fread(inputBuffer, sizeof(INT_PCM), frame_size * OUTPUT_CHANNELS, inputFile))
@@ -108,7 +109,6 @@ int main()
             perror("Failed to encode PCM frame\n");
             break;
         }
-        // printf("encode ok!\n");
 
         // 写入输出文件
         fwrite(outputBuffer, 1, outputArgs.numOutBytes, outputFile);
@@ -121,36 +121,4 @@ int main()
     aacEncClose(&encoderHandle);
 
     return 0;
-}
-
-int f()
-{
-    static INT_PCM inputBuffer[8 * 2048];
-    static UCHAR ancillaryBuffer[50];
-    static AACENC_MetaData metaDataSetup;
-    static UCHAR outputBuffer[8192];
-    static void *inBuffer[] = {inputBuffer, ancillaryBuffer, &metaDataSetup};
-    static INT inBufferIds[] = {IN_AUDIO_DATA, IN_ANCILLRY_DATA, IN_METADATA_SETUP};
-    static INT inBufferSize[] = {sizeof(inputBuffer), sizeof(ancillaryBuffer), sizeof(metaDataSetup)};
-    static INT inBufferElSize[] = {sizeof(INT_PCM), sizeof(UCHAR), sizeof(AACENC_MetaData)};
-
-    static void *outBuffer[] = {outputBuffer};
-    static INT outBufferIds[] = {OUT_BITSTREAM_DATA};
-    static INT outBufferSize[] = {sizeof(outputBuffer)};
-    static INT outBufferElSize[] = {sizeof(UCHAR)};
-
-    AACENC_BufDesc inBufDesc;
-    AACENC_BufDesc outBufDesc;
-
-    inBufDesc.numBufs = sizeof(inBuffer) / sizeof(void *);
-    inBufDesc.bufs = (void **)&inBuffer;
-    inBufDesc.bufferIdentifiers = inBufferIds;
-    inBufDesc.bufSizes = inBufferSize;
-    inBufDesc.bufElSizes = inBufferElSize;
-
-    outBufDesc.numBufs = sizeof(outBuffer) / sizeof(void *);
-    outBufDesc.bufs = (void **)&outBuffer;
-    outBufDesc.bufferIdentifiers = outBufferIds;
-    outBufDesc.bufSizes = outBufferSize;
-    outBufDesc.bufElSizes = outBufferElSize;
 }
